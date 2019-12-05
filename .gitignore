@@ -1,0 +1,4 @@
+*.env
+/node_modules
+config.js
+google_service_account.json
