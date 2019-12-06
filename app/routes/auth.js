@@ -62,6 +62,7 @@ router.post("/", async (req, res) => {
         // If true, we send back error the email exists.
         if (get_user_auth_by_email_response.emailVerified) {
           res.status(409).json({ msg: "email already exists." });
+          return
         }
 
         // If false, we continue
