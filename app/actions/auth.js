@@ -1,5 +1,3 @@
-const express = require("express");
-const path = require("path");
 const sgMail = require("@sendgrid/mail");
 const firebase_admin = require("firebase-admin");
 
@@ -21,7 +19,7 @@ exports._validatePassword = password => {
 // const logo_png = require("../../public/pngs/logo.png")
 
 exports._sendVerificationEmail = (email, uuid, token) => {
-  let link = `http://localhost:3000/auth?email=${email}&id=${uuid}&token=${token}`;
+  let link = `${process.env.SERVER_URL}auth?email=${email}&id=${uuid}&token=${token}`;
   let message = {
     to: email,
     from: "quintapp@gmail.com",
