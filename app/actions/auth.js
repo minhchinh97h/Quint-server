@@ -74,16 +74,36 @@ exports._updateVerifiedUserAuth = uuid => {
   return _handlePromise(promise);
 };
 
-exports._createUserDatabase = (uuid, email) => {
+exports._createUserDatabase = (uuid, email, referral_code) => {
   let promise = firebase_admin
     .firestore()
     .collection("users")
     .doc(uuid)
     .create({
       email,
-      plan: "free",
       createdAt: Date.now(),
-      emailVerified: true
+      emailVerified: true,
+      referralCode: referral_code,
+      expiryTimestamp: Date.now(),
+      package: {
+        plan: "free",
+        renewalTimestamp: Date.now()
+      }
+    });
+
+  return _handlePromise(promise);
+};
+
+exports._createReferralCodeDatabase = (uuid, referral_code) => {
+  let promise = firebase_admin
+    .firestore()
+    .collection("referralCodes")
+    .doc(uuid)
+    .create({
+      value: referral_code,
+      numberOfRefs: 0,
+      createdAt: Date.now(),
+      history: []
     });
 
   return _handlePromise(promise);

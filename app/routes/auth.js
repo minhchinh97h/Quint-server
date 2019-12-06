@@ -15,7 +15,8 @@ const {
   _updateVerifiedUserAuth,
   _deleteUserAuth,
   _getUserAuth,
-  _getUserAuthByEmail
+  _getUserAuthByEmail,
+  _createReferralCodeDatabase
 } = require("../actions/auth");
 
 // Sign in, Sign up
@@ -144,15 +145,33 @@ router.get("/", async (req, res) => {
 
         // If the token is not expired, server verifies the account
         if (now - token_created_at < expire_time) {
+          //Server generates a new referral code for user
+          let referral_code = crypto_random_string({
+            length: 6,
+            characters:
+              "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
+          });
+
           // Server will create the user's doc into database
           let [
             create_user_db_response,
             create_user_db_error
-          ] = await _createUserDatabase(id, email);
+          ] = await _createUserDatabase(id, email, referral_code);
 
           // If the server cannot create user, send back error
           if (create_user_db_error) {
             res.send(create_user_db_error);
+            return;
+          }
+
+          let [
+            create_referral_code_response,
+            create_referral_code_error
+          ] = _createReferralCodeDatabase(id, referral_code);
+
+          // If the server cannot create referral code data, send error
+          if (create_referral_code_error) {
+            res.send(create_referral_code_error);
             return;
           }
 
