@@ -1,22 +1,29 @@
 const express = require("express");
 const app = express();
 const port = 3000;
-const dotenv_result = require("dotenv").config();
+
+const node_env = process.env.NODE_ENV;
+let dotenv_result;
+
+if (node_env !== "production") {
+  dotenv_result = require("dotenv").config();
+
+  if (dotenv_result.error) {
+    console.log(dotenv_result.error);
+  }
+}
 const compression = require("compression");
 const helmet = require("helmet");
 const errorhandler = require("errorhandler");
 const bodyparser = require("body-parser");
 const path = require("path");
 
-if (dotenv_result.error) {
-  console.log(dotenv_result.error);
-}
-
 const firebase_admin = require("firebase-admin");
-const google_service_account = require("../google_service_account.json");
 
 firebase_admin.initializeApp({
-  credential: firebase_admin.credential.cert(JSON.parse(process.env.GOOGLE_APPLICATION_CREDENTIALS)),
+  credential: firebase_admin.credential.cert(
+    JSON.parse(process.env.GOOGLE_APPLICATION_CREDENTIALS)
+  ),
   databaseURL: "https://quint-a7b04.firebaseio.com"
 });
 
