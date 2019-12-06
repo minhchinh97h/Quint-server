@@ -1,6 +1,5 @@
 const express = require("express");
 const app = express();
-const port = 3000;
 
 const node_env = process.env.NODE_ENV;
 let dotenv_result;
@@ -12,6 +11,8 @@ if (node_env !== "production") {
     console.log(dotenv_result.error);
   }
 }
+
+const port = process.env.PORT;
 const compression = require("compression");
 const helmet = require("helmet");
 const errorhandler = require("errorhandler");
