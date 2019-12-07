@@ -167,7 +167,7 @@ router.get("/", async (req, res) => {
           let [
             create_referral_code_response,
             create_referral_code_error
-          ] = _createReferralCodeDatabase(id, referral_code);
+          ] = await _createReferralCodeDatabase(id, referral_code);
 
           // If the server cannot create referral code data, send error
           if (create_referral_code_error) {
