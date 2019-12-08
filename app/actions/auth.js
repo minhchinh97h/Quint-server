@@ -19,7 +19,7 @@ exports._validatePassword = password => {
 // const logo_png = require("../../public/pngs/logo.png")
 
 exports._sendVerificationEmail = (email, uuid, token) => {
-  let link = `${process.env.SERVER_URL}auth?email=${email}&id=${uuid}&token=${token}`;
+  let link = `${process.env.LOCAL_URL}auth?email=${email}&id=${uuid}&token=${token}`;
   let message = {
     to: email,
     from: "quintapp@gmail.com",
@@ -32,112 +32,157 @@ exports._sendVerificationEmail = (email, uuid, token) => {
     }
   };
 
-  let promise = sgMail.send(message);
+  return sgMail.send(message);
 
-  return _handlePromise(promise);
+  // return _handlePromise(promise);
 };
 
 exports._getUserAuth = uuid => {
-  let promise = firebase_admin.auth().getUser(uuid);
+  return firebase_admin.auth().getUser(uuid);
 
-  return _handlePromise(promise);
+  // return _handlePromise(promise);
 };
 
 exports._getUserAuthByEmail = email => {
-  let promise = firebase_admin.auth().getUserByEmail(email);
+  return firebase_admin.auth().getUserByEmail(email);
 
-  return _handlePromise(promise);
+  // return _handlePromise(promise);
 };
 
 exports._createUserAuth = (email, password) => {
-  let promise = firebase_admin.auth().createUser({
+  return firebase_admin.auth().createUser({
     email,
     password,
     emailVerified: false,
     disabled: false
   });
 
-  return _handlePromise(promise);
+  // return _handlePromise(promise);
 };
 
 exports._deleteUserAuth = uuid => {
-  let promise = firebase_admin.auth().deleteUser(uuid);
+  return firebase_admin.auth().deleteUser(uuid);
 
-  return _handlePromise(promise);
+  // return _handlePromise(promise);
 };
 
 exports._updateVerifiedUserAuth = uuid => {
-  let promise = firebase_admin.auth().updateUser(uuid, {
+  return firebase_admin.auth().updateUser(uuid, {
     emailVerified: true
   });
 
-  return _handlePromise(promise);
+  // return _handlePromise(promise);
 };
 
-exports._createUserDatabase = (uuid, email, referral_code) => {
-  let promise = firebase_admin
+exports._createUserDatabase = (
+  uuid,
+  email,
+  referral_code,
+  used_referral_code,
+  used_referral_code_bound_uuid
+) => {
+  let created_at = Date.now();
+  return firebase_admin
     .firestore()
     .collection("users")
     .doc(uuid)
     .create({
       email,
-      createdAt: Date.now(),
+      createdAt: created_at,
       emailVerified: true,
       referralCode: referral_code,
-      expiryTimestamp: Date.now(),
+      usedReferralCodeData: {
+        value: used_referral_code,
+        boundUuid: used_referral_code_bound_uuid,
+        createdAt: created_at
+      },
+      expiryTimestamp: created_at,
       package: {
         plan: "free",
-        renewalTimestamp: Date.now()
+        renewalTimestamp: created_at
       }
     });
 
-  return _handlePromise(promise);
+  // return _handlePromise(promise);
+};
+
+exports._getUsedReferralCode = used_referral_code => {
+  return firebase_admin
+    .firestore()
+    .collection("referralCodes")
+    .doc(used_referral_code)
+    .get();
 };
 
 exports._createReferralCodeDatabase = (uuid, referral_code) => {
-  let promise = firebase_admin
+  return firebase_admin
     .firestore()
     .collection("referralCodes")
-    .doc(uuid)
+    .doc(referral_code)
     .create({
       value: referral_code,
       numberOfRefs: 0,
       createdAt: Date.now(),
-      history: []
+      history: [],
+      uuid
     });
 
-  return _handlePromise(promise);
+  // return _handlePromise(promise);
 };
 
-exports._setVerificationTokenBelongedToUser = (uuid, token) => {
-  let promise = firebase_admin
+exports._deleteReferralCodeDatabaseWithUuid = uuid => {
+  let batch = firebase_admin.firestore().batch();
+
+  try {
+    batch.delete(
+      firebase_admin
+        .firestore()
+        .collection("referralCodes")
+        .where("uuid", "==", uuid)
+    );
+  } catch (err) {
+    // To do when cannot delete
+  }
+  return batch.commit();
+};
+
+exports._setVerificationTokenBelongedToUser = (
+  uuid,
+  token,
+  email,
+  used_referral_code
+) => {
+  return firebase_admin
     .firestore()
     .collection("verificationTokens")
     .doc(uuid)
     .set({
-      token,
-      createdAt: Date.now()
+      value: token,
+      email,
+      uuid,
+      createdAt: Date.now(),
+      usedReferralCode: used_referral_code
     });
 
-  return _handlePromise(promise);
+  // return _handlePromise(promise);
 };
 
 exports._getVerificationTokenBelongedToUser = uuid => {
-  let promise = firebase_admin
+  return firebase_admin
     .firestore()
     .collection("verificationTokens")
     .doc(uuid)
     .get();
 
-  return _handlePromise(promise);
+  // return _handlePromise(promise);
 };
 
 exports._deleteVerificationTokenBelongedToUser = uuid => {
-  let promise = firebase_admin
+  return firebase_admin
     .firestore()
     .collection("verificationTokens")
     .doc(uuid)
     .delete();
 
-  return _handlePromise(promise);
+  // return _handlePromise(promise);
 };
