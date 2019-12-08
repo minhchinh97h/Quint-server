@@ -16,8 +16,6 @@ exports._validatePassword = password => {
   return regex.test(String(password));
 };
 
-// const logo_png = require("../../public/pngs/logo.png")
-
 exports._sendVerificationEmail = (email, uuid, token) => {
   let link = `${process.env.SERVER_URL}auth?email=${email}&id=${uuid}&token=${token}`;
   let message = {
