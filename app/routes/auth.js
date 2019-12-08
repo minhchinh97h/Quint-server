@@ -153,22 +153,24 @@ router.get("/", async (req, res) => {
       ) {
         // Retrieve the used referral code of the new account
         let used_referral_code = get_verification_token_response.data()
-          .usedReferralCode;
+            .usedReferralCode,
+          used_referral_code_bound_uuid = "";
 
-        // Check if the used referral code exists in db
-        let [
-          get_used_referral_code_response,
-          get_used_referral_code_error
-        ] = await _handlePromise(_getUsedReferralCode(used_referral_code));
+        // If there is a used referral code. We will find the bound uuid and the code to update user's data in db.
+        if (used_referral_code.length > 0 && used_referral_code !== "") {
+          // Check if the used referral code exists in db
+          let [
+            get_used_referral_code_response,
+            get_used_referral_code_error
+          ] = await _handlePromise(_getUsedReferralCode(used_referral_code));
 
-        let used_referral_code_bound_uuid = "";
-
-        // If it exists, we get the bound uuid to add into user db.
-        // A valid referral benefit will be granted only the user has 2 match properties: boundUuid and value of usedReferralCodeData
-        if (get_used_referral_code_response) {
-          if (get_used_referral_code_response.data()) {
-            used_referral_code_bound_uuid = get_used_referral_code_response.data()
-              .uuid;
+          // If it exists, we get the bound uuid to add into user db.
+          // A valid referral benefit will be granted only the user has 2 match properties: boundUuid and value of usedReferralCodeData
+          if (get_used_referral_code_response) {
+            if (get_used_referral_code_response.data()) {
+              used_referral_code_bound_uuid = get_used_referral_code_response.data()
+                .uuid;
+            }
           }
         }
 
