@@ -17,7 +17,7 @@ exports._validatePassword = password => {
 };
 
 exports._sendVerificationEmail = (email, uuid, token) => {
-  let link = `${process.env.LOCAL_URL}auth?email=${email}&id=${uuid}&token=${token}`;
+  let link = `${process.env.SERVER_URL}auth?email=${email}&id=${uuid}&token=${token}`;
   let message = {
     to: email,
     from: "quintapp@gmail.com",
