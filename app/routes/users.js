@@ -30,16 +30,18 @@ router.get("/", async (req, res) => {
     const durations = [1000, 2000, 2500, 3000];
 
     const promises = durations.map(duration => {
-      if (duration === 2000) {
-        return timeOut(duration);
-      } else if (duration === 2500) {
-        return timeOut(duration);
-      } else {
-        return timeOut(duration).catch(e => {
-          // res.send(`${duration}`)
-          // return;
-        });
-      }
+      //   if (duration === 2000) {
+      //     return timeOut(duration);
+      //   } else if (duration === 2500) {
+      //     return timeOut(duration);
+      //   } else {
+      //     return timeOut(duration).catch(e => {
+      //       // res.send(`${duration}`)
+      //       // return;
+      //     });
+      //   }
+
+      return _handlePromise(timeOut(duration));
     });
 
     let [promise_all_responses, promise_all_error] = await _handlePromiseAll(

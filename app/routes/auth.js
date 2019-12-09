@@ -18,7 +18,8 @@ const {
   _createReferralCodeDatabase,
   _deleteReferralCodeDatabaseWithUuid,
   _getUsedReferralCode,
-  _updateUserDatabase
+  _updateUserDatabase,
+  _updateReferralCodeDatabase
 } = require("../actions/auth");
 
 const {
@@ -185,24 +186,6 @@ router.get("/", async (req, res) => {
               "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
           });
 
-          // Calculate expiriy timestamp and renewal timestamp based on used referral code
-          let timestamp = Date.now(),
-            expiry_timestamp = timestamp,
-            renewal_timestamp = timestamp,
-            plan = "free";
-
-          // If there is a valid used referral code, we gift the referred 30-days of premium
-          if (
-            used_referral_code_bound_uuid.length > 0 &&
-            used_referral_code_bound_uuid !== "" &&
-            used_referral_code.length > 0 &&
-            used_referral_code !== ""
-          ) {
-            expiry_timestamp += 30 * 24 * 60 * 60 * 1000;
-            renewal_timestamp = expiry_timestamp;
-            plan = "premium";
-          }
-
           // Don't need to stop when get error since we can create cron job to delete redundant tokens.
           let [
             delete_verification_token_response,
@@ -213,38 +196,73 @@ router.get("/", async (req, res) => {
             // Server add generated referral code to db
             _createReferralCodeDatabase(id, referral_code),
             // Updates status of user in userpool (verfied email)
-            _updateVerifiedUserAuth(id),
-
-            // DO NOT CATCH ERROR SO THAT THE PROMISE.ALL PROCESS WILL FAIL IF THIS REQUEST FAILS
-            // Create user document in users collection
-            _createUserDatabase(
-              id,
-              email,
-              referral_code,
-              used_referral_code,
-              used_referral_code_bound_uuid,
-              expiry_timestamp,
-              renewal_timestamp,
-              plan
-            )
+            _updateVerifiedUserAuth(id)
           ];
 
-          // Update the refer's user data in db if there is a valid referral code
+          // Update the refer & referred's user data in db if there is a valid referral code (gift 30-days of premium)
           if (
             used_referral_code_bound_uuid.length > 0 &&
             used_referral_code_bound_uuid !== "" &&
             used_referral_code.length > 0 &&
             used_referral_code !== ""
           ) {
-            // Gift the referred 30 days of premium
-            let extra_time = 30 * 24 * 60 * 60 * 1000,
-              plan = "premium";
+            // UPDATE REFER
+            let timestamp = Date.now(),
+              refer_expiry_timestamp = timestamp + 30 * 24 * 60 * 60 * 1000,
+              refer_renewal_timestamp = refer_expiry_timestamp,
+              refer_plan = "premium";
+
+            // DO NOT CATCH ERROR SO THAT THE PROMISE.ALL PROCESS WILL FAIL IF THIS REQUEST FAILS
+            promises.push(
+              // Create user document in users collection
+              _createUserDatabase(
+                id,
+                email,
+                referral_code,
+                used_referral_code,
+                used_referral_code_bound_uuid,
+                refer_expiry_timestamp,
+                refer_renewal_timestamp,
+                refer_plan
+              )
+            );
+
+            // UPDATE REFERRED
+            let reffered_extra_time = 30 * 24 * 60 * 60 * 1000,
+              referred_plan = "premium";
 
             // DO NOT CATCH ERROR SO THAT THE PROMISE.ALL PROCESS WILL FAIL IF THIS REQUEST FAILS
             promises.push(
               _updateUserDatabase(
                 used_referral_code_bound_uuid,
-                extra_time,
+                reffered_extra_time,
+                referred_plan
+              )
+            );
+
+            // UPDATE REFERRAL CODE DATA's HISTORY
+            promises.push(
+              _updateReferralCodeDatabase(used_referral_code, id, email, timestamp)
+            );
+          }
+          // IF there is no valid code, only do update on the referred (new account)
+          else {
+            let timestamp = Date.now(),
+              expire_timestamp = timestamp,
+              renewal_timestamp = expire_timestamp,
+              plan = "free";
+
+            // DO NOT CATCH ERROR SO THAT THE PROMISE.ALL PROCESS WILL FAIL IF THIS REQUEST FAILS
+            promises.push(
+              // Create user document in users collection
+              _createUserDatabase(
+                id,
+                email,
+                referral_code,
+                used_referral_code,
+                used_referral_code_bound_uuid,
+                expire_timestamp,
+                renewal_timestamp,
                 plan
               )
             );

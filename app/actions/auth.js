@@ -88,6 +88,7 @@ exports._createUserDatabase = (
     .collection("users")
     .doc(uuid)
     .create({
+      uuid,
       email,
       createdAt: created_at,
       emailVerified: true,
@@ -108,12 +109,20 @@ exports._createUserDatabase = (
 };
 
 exports._updateUserDatabase = (uuid, extra_time, plan) => {
-  return firebase_admin.firestore().collection("users").doc(uuid).update({
-    expiryTimestamp: firebase_admin.firestore.FieldValue.increment(extra_time),
-    "package.plan": plan,
-    "package.renewalTimestamp": firebase_admin.firestore.FieldValue.increment(extra_time)
-  })
-}
+  return firebase_admin
+    .firestore()
+    .collection("users")
+    .doc(uuid)
+    .update({
+      expiryTimestamp: firebase_admin.firestore.FieldValue.increment(
+        extra_time
+      ),
+      "package.plan": plan,
+      "package.renewalTimestamp": firebase_admin.firestore.FieldValue.increment(
+        extra_time
+      )
+    });
+};
 
 exports._getUsedReferralCode = used_referral_code => {
   return firebase_admin
@@ -130,13 +139,31 @@ exports._createReferralCodeDatabase = (uuid, referral_code) => {
     .doc(referral_code)
     .create({
       value: referral_code,
-      numberOfRefs: 0,
       createdAt: Date.now(),
       history: [],
       uuid
     });
 
   // return _handlePromise(promise);
+};
+
+exports._updateReferralCodeDatabase = (
+  referral_code,
+  refer_uuid,
+  refer_email,
+  used_timestamp
+) => {
+  return firebase_admin
+    .firestore()
+    .collection("referralCodes")
+    .doc(referral_code)
+    .update({
+      history: firebase_admin.firestore.FieldValue.arrayUnion({
+        timestamp: used_timestamp,
+        uuid: refer_uuid,
+        email: refer_email
+      })
+    });
 };
 
 exports._deleteReferralCodeDatabaseWithUuid = uuid => {
