@@ -17,7 +17,7 @@ exports._validatePassword = password => {
 };
 
 exports._sendVerificationEmail = (email, uuid, token) => {
-  let link = `${process.env.SERVER_URL}auth?email=${email}&id=${uuid}&token=${token}`;
+  let link = `${process.env.LOCAL_URL}auth?email=${email}&id=${uuid}&token=${token}`;
   let message = {
     to: email,
     from: "quintapp@gmail.com",
@@ -77,7 +77,10 @@ exports._createUserDatabase = (
   email,
   referral_code,
   used_referral_code,
-  used_referral_code_bound_uuid
+  used_referral_code_bound_uuid,
+  expiry_timestamp,
+  renewal_timestamp,
+  plan
 ) => {
   let created_at = Date.now();
   return firebase_admin
@@ -94,15 +97,23 @@ exports._createUserDatabase = (
         boundUuid: used_referral_code_bound_uuid,
         createdAt: created_at
       },
-      expiryTimestamp: created_at,
+      expiryTimestamp: expiry_timestamp,
       package: {
-        plan: "free",
-        renewalTimestamp: created_at
+        plan,
+        renewalTimestamp: renewal_timestamp
       }
     });
 
   // return _handlePromise(promise);
 };
+
+exports._updateUserDatabase = (uuid, extra_time, plan) => {
+  return firebase_admin.firestore().collection("users").doc(uuid).update({
+    expiryTimestamp: firebase_admin.firestore.FieldValue.increment(extra_time),
+    "package.plan": plan,
+    "package.renewalTimestamp": firebase_admin.firestore.FieldValue.increment(extra_time)
+  })
+}
 
 exports._getUsedReferralCode = used_referral_code => {
   return firebase_admin

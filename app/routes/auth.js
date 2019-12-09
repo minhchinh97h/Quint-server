@@ -17,7 +17,8 @@ const {
   _getUserAuthByEmail,
   _createReferralCodeDatabase,
   _deleteReferralCodeDatabaseWithUuid,
-  _getUsedReferralCode
+  _getUsedReferralCode,
+  _updateUserDatabase
 } = require("../actions/auth");
 
 const {
@@ -88,15 +89,9 @@ router.post("/", async (req, res) => {
           token,
           email,
           used_referral_code
-        ).catch(err => {
-          res.send(err);
-          return;
-        }),
+        ),
         // Send the verification email to user's mailbox, with the link including query string of email and token
-        _sendVerificationEmail(email, new_user_uuid, token).catch(err => {
-          res.send(err);
-          return;
-        })
+        _sendVerificationEmail(email, new_user_uuid, token)
       ];
 
       let [promise_all_responses, promise_all_error] = await _handlePromiseAll(
@@ -104,6 +99,7 @@ router.post("/", async (req, res) => {
       );
 
       if (promise_all_error) {
+        // Send the first encountered error and stop the process.
         res.send(promise_all_error);
         return;
       }
@@ -157,6 +153,7 @@ router.get("/", async (req, res) => {
           used_referral_code_bound_uuid = "";
 
         // If there is a used referral code. We will find the bound uuid and the code to update user's data in db.
+        // To use the query the used referral code must have more than 1 character.
         if (used_referral_code.length > 0 && used_referral_code !== "") {
           // Check if the used referral code exists in db
           let [
@@ -188,33 +185,70 @@ router.get("/", async (req, res) => {
               "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
           });
 
+          // Calculate expiriy timestamp and renewal timestamp based on used referral code
+          let timestamp = Date.now(),
+            expiry_timestamp = timestamp,
+            renewal_timestamp = timestamp,
+            plan = "free";
+
+          // If there is a valid used referral code, we gift the referred 30-days of premium
+          if (
+            used_referral_code_bound_uuid.length > 0 &&
+            used_referral_code_bound_uuid !== "" &&
+            used_referral_code.length > 0 &&
+            used_referral_code !== ""
+          ) {
+            expiry_timestamp += 30 * 24 * 60 * 60 * 1000;
+            renewal_timestamp = expiry_timestamp;
+            plan = "premium";
+          }
+
+          // Don't need to stop when get error since we can create cron job to delete redundant tokens.
+          let [
+            delete_verification_token_response,
+            delete_verification_token_error
+          ] = await _handlePromise(_deleteVerificationTokenBelongedToUser(id));
+
           let promises = [
             // Server add generated referral code to db
-            _createReferralCodeDatabase(id, referral_code).catch(err => {
-              res.send(err);
-              return;
-            }),
-            // Deletes the verfication token's data as it is no-need
-            _deleteVerificationTokenBelongedToUser(id).catch(err => {
-              // To do when catch err
-            }),
+            _createReferralCodeDatabase(id, referral_code),
             // Updates status of user in userpool (verfied email)
-            _updateVerifiedUserAuth(id).catch(err => {
-              res.send(err);
-              return;
-            }),
+            _updateVerifiedUserAuth(id),
+
+            // DO NOT CATCH ERROR SO THAT THE PROMISE.ALL PROCESS WILL FAIL IF THIS REQUEST FAILS
             // Create user document in users collection
             _createUserDatabase(
               id,
               email,
               referral_code,
               used_referral_code,
-              used_referral_code_bound_uuid
-            ).catch(err => {
-              res.send(err);
-              return;
-            })
+              used_referral_code_bound_uuid,
+              expiry_timestamp,
+              renewal_timestamp,
+              plan
+            )
           ];
+
+          // Update the refer's user data in db if there is a valid referral code
+          if (
+            used_referral_code_bound_uuid.length > 0 &&
+            used_referral_code_bound_uuid !== "" &&
+            used_referral_code.length > 0 &&
+            used_referral_code !== ""
+          ) {
+            // Gift the referred 30 days of premium
+            let extra_time = 30 * 24 * 60 * 60 * 1000,
+              plan = "premium";
+
+            // DO NOT CATCH ERROR SO THAT THE PROMISE.ALL PROCESS WILL FAIL IF THIS REQUEST FAILS
+            promises.push(
+              _updateUserDatabase(
+                used_referral_code_bound_uuid,
+                extra_time,
+                plan
+              )
+            );
+          }
 
           let [
             promise_all_responses,
@@ -234,22 +268,18 @@ router.get("/", async (req, res) => {
 
         // If the token is expired, server will send a notified page that says the link is expired.
         else {
+          // Don't need to stop when get error since we can create cron job to delete redundant tokens.
+          let [
+            delete_verification_token_response,
+            delete_verification_token_error
+          ] = await _handlePromise(_deleteVerificationTokenBelongedToUser(id));
+
           let promises = [
-            // Server deletes the verfication token in db as the email has been verified
-            _deleteVerificationTokenBelongedToUser(id).catch(err => {
-              // To do when catch err
-            }),
             // Server will then delete the associated account, which of course has not been verified
-            _deleteUserAuth(id).catch(err => {
-              res.send(delete_user_auth_error);
-              return;
-            }),
+            _deleteUserAuth(id),
 
             // Delete referral codes that are bound with uuid (Just to make sure that there are no unbound referral code)
-            _deleteReferralCodeDatabaseWithUuid(id).catch(err => {
-              res.send(delete_user_auth_error);
-              return;
-            })
+            _deleteReferralCodeDatabaseWithUuid(id)
           ];
 
           let [
