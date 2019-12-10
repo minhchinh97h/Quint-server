@@ -35,7 +35,7 @@ router.post("/", async (req, res) => {
   if (action === "signin") {
   } else if (action === "signup") {
     /* SIGN UP PROCESS */
-    const { email, password, used_referral_code } = body;
+    const { full_name, email, password, used_referral_code } = body;
 
     let _check_if_email_ok = _validateEmail(email),
       _check_if_password_ok = _validatePassword(password);
@@ -56,7 +56,7 @@ router.post("/", async (req, res) => {
         let [
           create_user_record_response,
           create_user_record_error
-        ] = await _handlePromise(_createUserAuth(email, password));
+        ] = await _handlePromise(_createUserAuth(full_name, email, password));
 
         // Handle error
         if (create_user_record_error) {
@@ -115,14 +115,14 @@ router.post("/", async (req, res) => {
 
     // If email or password is invalid, send 400 - bad request.
     else {
-      res.status(400).send("Invalid email or password.");
+      res.status(400).send("Bad request.");
     }
 
     return;
   }
   /* END OF SIGN UP PROCESS */
 
-  res.status(400).json("Bad Request");
+  res.status(400).json("Bad request.");
 });
 
 router.get("/", async (req, res) => {
@@ -199,6 +199,19 @@ router.get("/", async (req, res) => {
             _updateVerifiedUserAuth(id)
           ];
 
+          // We need to get user's data from auth's userpool to add into user pool.
+          let [
+            get_user_auth_response,
+            get_user_auth_error
+          ] = await _handlePromise(_getUserAuth(id));
+
+          if (get_user_auth_error) {
+            res.send(get_user_auth_error);
+            return;
+          }
+
+          let user_full_name = get_user_auth_response.displayName;
+
           // Update the refer & referred's user data in db if there is a valid referral code (gift 30-days of premium)
           if (
             used_referral_code_bound_uuid.length > 0 &&
@@ -223,7 +236,8 @@ router.get("/", async (req, res) => {
                 used_referral_code_bound_uuid,
                 refer_expiry_timestamp,
                 refer_renewal_timestamp,
-                refer_plan
+                refer_plan,
+                user_full_name
               )
             );
 
@@ -242,7 +256,12 @@ router.get("/", async (req, res) => {
 
             // UPDATE REFERRAL CODE DATA's HISTORY
             promises.push(
-              _updateReferralCodeDatabase(used_referral_code, id, email, timestamp)
+              _updateReferralCodeDatabase(
+                used_referral_code,
+                id,
+                email,
+                timestamp
+              )
             );
           }
           // IF there is no valid code, only do update on the referred (new account)
@@ -263,7 +282,8 @@ router.get("/", async (req, res) => {
                 used_referral_code_bound_uuid,
                 expire_timestamp,
                 renewal_timestamp,
-                plan
+                plan,
+                user_full_name
               )
             );
           }

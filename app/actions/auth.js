@@ -17,7 +17,7 @@ exports._validatePassword = password => {
 };
 
 exports._sendVerificationEmail = (email, uuid, token) => {
-  let link = `${process.env.SERVER_URL}auth?email=${email}&id=${uuid}&token=${token}`;
+  let link = `${process.env.LOCAL_URL}auth?email=${email}&id=${uuid}&token=${token}`;
   let message = {
     to: email,
     from: "quintapp@gmail.com",
@@ -47,12 +47,13 @@ exports._getUserAuthByEmail = email => {
   // return _handlePromise(promise);
 };
 
-exports._createUserAuth = (email, password) => {
+exports._createUserAuth = (full_name, email, password) => {
   return firebase_admin.auth().createUser({
     email,
     password,
     emailVerified: false,
-    disabled: false
+    disabled: false,
+    displayName: full_name
   });
 
   // return _handlePromise(promise);
@@ -80,7 +81,8 @@ exports._createUserDatabase = (
   used_referral_code_bound_uuid,
   expiry_timestamp,
   renewal_timestamp,
-  plan
+  plan,
+  user_full_name
 ) => {
   let created_at = Date.now();
   return firebase_admin
@@ -90,6 +92,7 @@ exports._createUserDatabase = (
     .create({
       uuid,
       email,
+      fullName: user_full_name,
       createdAt: created_at,
       emailVerified: true,
       referralCode: referral_code,
@@ -100,6 +103,7 @@ exports._createUserDatabase = (
       },
       expiryTimestamp: expiry_timestamp,
       package: {
+        billed: false,
         plan,
         renewalTimestamp: renewal_timestamp
       }
