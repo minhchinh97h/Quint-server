@@ -162,6 +162,11 @@ router.get("/", async (req, res) => {
             get_used_referral_code_error
           ] = await _handlePromise(_getUsedReferralCode(used_referral_code));
 
+          if (get_used_referral_code_error) {
+            res.send(get_used_referral_code_error);
+            return;
+          }
+
           // If it exists, we get the bound uuid to add into user db.
           // A valid referral benefit will be granted only the user has 2 match properties: boundUuid and value of usedReferralCodeData
           if (get_used_referral_code_response) {
