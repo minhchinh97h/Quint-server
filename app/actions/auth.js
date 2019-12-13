@@ -1,228 +1,33 @@
-const sgMail = require("@sendgrid/mail");
 const firebase_admin = require("firebase-admin");
 
-const { _handlePromise } = require("../helpers/handle_promises");
-
-sgMail.setApiKey(process.env.SENDGRID_API_KEY);
-
-exports._validateEmail = email => {
-  let regex = /^(([^<>()\[\]\\.,;:\s@"]+(\.[^<>()\[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/;
-  return regex.test(String(email).toLowerCase());
-};
-
-// Password must contain at least 6 characters, including 1 number and 1 uppercase
-exports._validatePassword = password => {
-  let regex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*[0-9])(?=.{6,})/;
-  return regex.test(String(password));
-};
-
-exports._sendVerificationEmail = (email, uuid, token) => {
-  let link = `${process.env.LOCAL_URL}auth?email=${email}&id=${uuid}&token=${token}`;
-  let message = {
-    to: email,
-    from: "quintapp@gmail.com",
-    templateId: "d-5861fe691a85455196e36093a0ad8b9c",
-    // subject: 'Testing email from Quint',
-    // text: 'HI',
-    // html: '<strong>Content goes here</strong>',
-    dynamic_template_data: {
-      link
-    }
-  };
-
-  return sgMail.send(message);
-
-  // return _handlePromise(promise);
-};
-
-exports._getUserAuth = uuid => {
+const _getUserAuth = uuid => {
   return firebase_admin.auth().getUser(uuid);
-
-  // return _handlePromise(promise);
 };
 
-exports._getUserAuthByEmail = email => {
+const _getUserAuthByEmail = email => {
   return firebase_admin.auth().getUserByEmail(email);
-
-  // return _handlePromise(promise);
 };
 
-exports._createUserAuth = (full_name, email, password) => {
+const _createUserAuth = (email, password) => {
   return firebase_admin.auth().createUser({
     email,
     password,
     emailVerified: false,
-    disabled: false,
-    displayName: full_name
+    disabled: false
   });
-
-  // return _handlePromise(promise);
 };
 
-exports._deleteUserAuth = uuid => {
+const _updateUserAuth = (uuid, data) => {
+  return firebase_admin.auth().updateUser(uuid, data);
+};
+
+const _deleteUserAuth = uuid => {
   return firebase_admin.auth().deleteUser(uuid);
-
-  // return _handlePromise(promise);
 };
 
-exports._updateVerifiedUserAuth = uuid => {
-  return firebase_admin.auth().updateUser(uuid, {
-    emailVerified: true
-  });
-
-  // return _handlePromise(promise);
-};
-
-exports._createUserDatabase = (
-  uuid,
-  email,
-  referral_code,
-  used_referral_code,
-  used_referral_code_bound_uuid,
-  expiry_timestamp,
-  renewal_timestamp,
-  plan,
-  user_full_name
-) => {
-  let created_at = Date.now();
-  return firebase_admin
-    .firestore()
-    .collection("users")
-    .doc(uuid)
-    .create({
-      uuid,
-      email,
-      fullName: user_full_name,
-      createdAt: created_at,
-      emailVerified: true,
-      referralCode: referral_code,
-      usedReferralCodeData: {
-        value: used_referral_code,
-        boundUuid: used_referral_code_bound_uuid,
-        createdAt: created_at
-      },
-      expiryTimestamp: expiry_timestamp,
-      package: {
-        billed: false,
-        plan,
-        renewalTimestamp: renewal_timestamp
-      }
-    });
-
-  // return _handlePromise(promise);
-};
-
-exports._updateUserDatabase = (uuid, extra_time, plan) => {
-  return firebase_admin
-    .firestore()
-    .collection("users")
-    .doc(uuid)
-    .update({
-      expiryTimestamp: firebase_admin.firestore.FieldValue.increment(
-        extra_time
-      ),
-      "package.plan": plan,
-      "package.renewalTimestamp": firebase_admin.firestore.FieldValue.increment(
-        extra_time
-      )
-    });
-};
-
-exports._getUsedReferralCode = used_referral_code => {
-  return firebase_admin
-    .firestore()
-    .collection("referralCodes")
-    .doc(used_referral_code)
-    .get();
-};
-
-exports._createReferralCodeDatabase = (uuid, referral_code) => {
-  return firebase_admin
-    .firestore()
-    .collection("referralCodes")
-    .doc(referral_code)
-    .create({
-      value: referral_code,
-      createdAt: Date.now(),
-      history: [],
-      uuid
-    });
-
-  // return _handlePromise(promise);
-};
-
-exports._updateReferralCodeDatabase = (
-  referral_code,
-  refer_uuid,
-  refer_email,
-  used_timestamp
-) => {
-  return firebase_admin
-    .firestore()
-    .collection("referralCodes")
-    .doc(referral_code)
-    .update({
-      history: firebase_admin.firestore.FieldValue.arrayUnion({
-        timestamp: used_timestamp,
-        uuid: refer_uuid,
-        email: refer_email
-      })
-    });
-};
-
-exports._deleteReferralCodeDatabaseWithUuid = uuid => {
-  let batch = firebase_admin.firestore().batch();
-
-  try {
-    batch.delete(
-      firebase_admin
-        .firestore()
-        .collection("referralCodes")
-        .where("uuid", "==", uuid)
-    );
-  } catch (err) {
-    // To do when cannot delete
-  }
-  return batch.commit();
-};
-
-exports._setVerificationTokenBelongedToUser = (
-  uuid,
-  token,
-  email,
-  used_referral_code
-) => {
-  return firebase_admin
-    .firestore()
-    .collection("verificationTokens")
-    .doc(uuid)
-    .set({
-      value: token,
-      email,
-      uuid,
-      createdAt: Date.now(),
-      usedReferralCode: used_referral_code
-    });
-
-  // return _handlePromise(promise);
-};
-
-exports._getVerificationTokenBelongedToUser = uuid => {
-  return firebase_admin
-    .firestore()
-    .collection("verificationTokens")
-    .doc(uuid)
-    .get();
-
-  // return _handlePromise(promise);
-};
-
-exports._deleteVerificationTokenBelongedToUser = uuid => {
-  return firebase_admin
-    .firestore()
-    .collection("verificationTokens")
-    .doc(uuid)
-    .delete();
-
-  // return _handlePromise(promise);
+module.exports = {
+  _getUserAuth,
+  _getUserAuthByEmail,
+  _createUserAuth,
+  _updateUserAuth
 };

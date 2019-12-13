@@ -1,0 +1,249 @@
+const HELPERS = require("../../helpers");
+const ACTIONS = require("../../actions");
+const path = require("path");
+
+const _processEmailVerificationMDW = async (req, res, next) => {
+  const { id, token } = req.query;
+
+  // If there are valid id and token
+  if (id && token) {
+    // Check if the account is verified
+    let [
+      get_user_db_response,
+      get_user_db_error
+    ] = await HELPERS.promise._handlePromise(ACTIONS.users._getUser(id));
+
+    if (get_user_db_error) {
+      res.send(get_user_db_error);
+      return;
+    }
+
+    // If the account is verified, send back verified link
+    if (get_user_db_response.data().emailVerified) {
+      res.sendFile(
+        path.join(__dirname, "../../public/html/verification-page/index.html")
+      );
+      return;
+    }
+
+    // Check if the token is expired
+    let [
+      get_verification_token_response,
+      get_verification_token_error
+    ] = await HELPERS.promise._handlePromise(
+      ACTIONS.verificationTokens._getVerificationToken(id)
+    );
+
+    if (get_verification_token_error) {
+      res.send(get_verification_token_error);
+      return;
+    }
+
+    let stored_token = get_verification_token_response.data().token,
+      stored_uuid = get_verification_token_response.data().uuid;
+
+    // Check if the token and id are correct
+    if (stored_token === token && stored_uuid === id) {
+      let token_created_at = get_verification_token_response.data().createdAt,
+        now = Date.now(),
+        expire_time = 24 * 60 * 60 * 1000; // 24 hours
+      // expire_time = 5 * 1000; // 5 seconds
+
+      // If the token is still valid
+      if (now - token_created_at < expire_time) {
+        // Check if the used_referral_code is valid
+        let used_referral_code = get_user_db_response.data()
+            .usedReferralCodeData.value,
+          referral_code = get_user_db_response.data().referralCode;
+
+        // If the used referral code is valid
+        if (used_referral_code.length === 6) {
+          let [
+            get_referral_code_response,
+            get_referral_code_error
+          ] = await HELPERS.promise._handlePromise(
+            ACTIONS.referralCodes._getReferralCode(used_referral_code)
+          );
+
+          if (get_referral_code_error) {
+            res.send(get_referral_code_error);
+            return;
+          }
+
+          if (get_referral_code_response.data()) {
+            // get the refer's uuid to update
+            let refer_uuid = get_referral_code_response.data().uuid;
+
+            // If the refer's uuid is valid, we will grant the refer and referred 30 days premium
+            if (refer_uuid.length > 0) {
+              let extra_time = 30 * 24 * 60 * 60 * 1000,
+                timestamp = Date.now(),
+                referred_expiry_timestamp = timestamp + extra_time;
+
+              let promises = [
+                // Update refer's user data
+                ACTIONS.users._updateUserWithExtraTime(refer_uuid, extra_time),
+                // Update refer's referral code data
+                ACTIONS.referralCodes._updateReferralCodeHistoryArray({
+                  referral_code: used_referral_code,
+                  timestamp,
+                  uuid: refer_uuid
+                }),
+                // Update referred's user data
+                ACTIONS.users._updateUser({
+                  uuid: id,
+                  emailVerified: true,
+                  usedReferralCodeData: {
+                    value: used_referral_code,
+                    referUuid: refer_uuid,
+                    createdAt: timestamp
+                  },
+                  expiryTimestamp: referred_expiry_timestamp,
+                  package: {
+                    billed: false,
+                    plan: "premium",
+                    renewalTimestamp: referred_expiry_timestamp
+                  }
+                }),
+                // Create a new document for referred's referral code data (override if exists)
+                ACTIONS.referralCodes._setReferralCode({
+                  uuid: id,
+                  referral_code: referral_code,
+                  history: [],
+                  createdAt: timestamp
+                }),
+
+                // Update user in Auth
+                ACTIONS.auth._updateUserAuth(id, { emailVerified: true })
+              ];
+
+              let [
+                promises_response,
+                promises_error
+              ] = await HELPERS.promise._handlePromiseAll(promises);
+
+              if (promises_error) {
+                res.send(promises_error);
+                return;
+              }
+            }
+
+            // If the refer's uuid is not valid, we will not grant the referred nor the refer
+            else {
+              let timestamp = Date.now();
+              let promises = [
+                // Update user in Auth
+                ACTIONS.auth._updateUserAuth(id, { emailVerified: true }),
+                // Update referred's user data
+                ACTIONS.users._updateUser({
+                  uuid: id,
+                  emailVerified: true,
+                  expiryTimestamp: timestamp,
+                  "package.plan": "free",
+                  "package.renewalTimestamp": timestamp
+                }),
+                // Update referred's referral code data
+                ACTIONS.referralCodes._setReferralCode({
+                  uuid: id,
+                  referral_code
+                })
+              ];
+
+              let [
+                promises_response,
+                promises_error
+              ] = await HELPERS.promise._handlePromiseAll(promises);
+
+              if (promises_error) {
+                res.send(promises_error);
+                return;
+              }
+            }
+          }
+          // If there is no referral code data, we will not grant the referred nor the refer.
+          else {
+            let timestamp = Date.now();
+            let promises = [
+              // Update user in Auth
+              ACTIONS.auth._updateUserAuth(id, { emailVerified: true }),
+              // Update referred's user data
+              ACTIONS.users._updateUser({
+                uuid: id,
+                emailVerified: true,
+                expiryTimestamp: timestamp,
+                "package.plan": "free",
+                "package.renewalTimestamp": timestamp
+              }),
+              // Update referred's referral code data
+              ACTIONS.referralCodes._setReferralCode({
+                uuid: id,
+                referral_code
+              })
+            ];
+
+            let [
+              promises_response,
+              promises_error
+            ] = await HELPERS.promise._handlePromiseAll(promises);
+
+            if (promises_error) {
+              res.send(promises_error);
+              return;
+            }
+          }
+        }
+
+        // If the referral code is not valid, we will not grant the referred nor the refer
+        else {
+          let timestamp = Date.now();
+          let promises = [
+            // Update user in Auth
+            ACTIONS.auth._updateUserAuth(id, { emailVerified: true }),
+            // Update referred's user data
+            ACTIONS.users._updateUser({
+              uuid: id,
+              emailVerified: true,
+              expiryTimestamp: timestamp,
+              "package.plan": "free",
+              "package.renewalTimestamp": timestamp
+            }),
+            // Update referred's referral code data
+            ACTIONS.referralCodes._setReferralCode({
+              uuid: id,
+              referral_code
+            })
+          ];
+
+          let [
+            promises_response,
+            promises_error
+          ] = await HELPERS.promise._handlePromiseAll(promises);
+
+          if (promises_error) {
+            res.send(promises_error);
+            return;
+          }
+        }
+
+        // If everything works, send back verified email link
+        res.sendFile(
+          path.join(__dirname, "../../public/html/verification-page/index.html")
+        );
+      }
+
+      // If the token is expired, send back the expiried link
+      else {
+        res.sendFile(
+          path.join(
+            __dirname,
+            "../../public/html/expired-verification-page/index.html"
+          )
+        );
+      }
+    }
+  } else {
+    res.status(400).send("Bad Request");
+  }
+};
+
+module.exports = [_processEmailVerificationMDW];
