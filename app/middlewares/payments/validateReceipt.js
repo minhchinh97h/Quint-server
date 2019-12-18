@@ -17,7 +17,6 @@ const _validateReceiptData = async (req, res, next) => {
         return
     }
 
-    console.log(send_receipt_data_response)
     res.send(send_receipt_data_response)
 }
 
