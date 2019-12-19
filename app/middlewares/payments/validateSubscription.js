@@ -24,6 +24,8 @@ const _validateSubscription = async (req, res, next) => {
 
   const { status } = send_receipt_data_response.data;
 
+  console.log("validate subscription", status)
+
   if (status === 0) {
     const {
       latest_receipt,
@@ -35,8 +37,10 @@ const _validateSubscription = async (req, res, next) => {
 
     // Check if the subscription's expiration time is past date
     const current_ms = Date.now();
+
     // If past date, we update user document
     if (expires_date_ms < current_ms) {
+
       let update_data = {
         uuid,
         "package.billed": false
@@ -53,10 +57,12 @@ const _validateSubscription = async (req, res, next) => {
         res.send(update_user_error);
         return;
       }
+      console.log("validate subscription", "expiry timestamp < now")
 
       res.status(200).send("Subscription expires.");
       return;
     }
+
 
     // If it is not expired, we update the latest renewal timestamp
     let update_data = {
@@ -75,6 +81,8 @@ const _validateSubscription = async (req, res, next) => {
       res.send(update_user_error);
       return;
     }
+
+    console.log("validate subscription", "expiry timestamp > now")
 
     res.status(200).send("OK");
     return;

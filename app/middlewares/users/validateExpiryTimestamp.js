@@ -13,6 +13,8 @@ const _validateExpiryTimestamp = async (req, res, next) => {
 
     let expiry_timestamp = get_user_response.data().expiryTimestamp
 
+    console.log("validate expiry timestamp", expiry_timestamp)
+
     // If expiry timestamp is past date, meaning the account is no longer a premium account
     if(expiry_timestamp < Date.now()){
         // Update user document
@@ -26,6 +28,8 @@ const _validateExpiryTimestamp = async (req, res, next) => {
             res.send(update_user_error)
             return
         }
+
+        console.log("validate expiry timestamp", "here")
 
         res.status(200).send("Change to free plan.")
         return
