@@ -26,6 +26,7 @@ const _validateReceiptData = async (req, res, next) => {
   const { status } = send_receipt_data_response.data;
 
   if (status === 1) {
+      console.log("here status === 1")
     // update user document in DB with latest_receipt
     const {
       latest_receipt,
@@ -42,6 +43,8 @@ const _validateReceiptData = async (req, res, next) => {
       res.send("Subscription expires");
       return;
     }
+
+    console.log("here expires_date_ms > current_ms ", expires_date_ms)
 
     // If it isn't past date, we add one more month into user's expiryTimestamp and update its package property
     let update_data = {
@@ -68,7 +71,7 @@ const _validateReceiptData = async (req, res, next) => {
     res.status(200).send("OK");
     return;
   } else {
-    res.send("Cannot process payment");
+    res.status(500).send("Cannot process payment");
     return;
   }
 };
