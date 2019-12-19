@@ -31,7 +31,7 @@ const _validateExpiryTimestamp = async (req, res, next) => {
         return
     }
 
-    res.status.send("OK")
+    res.status(200).send("OK")
     return
 }
 

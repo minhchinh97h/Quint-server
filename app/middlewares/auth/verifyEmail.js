@@ -1,6 +1,7 @@
 const HELPERS = require("../../helpers");
 const ACTIONS = require("../../actions");
 const path = require("path");
+const firebase_admin = require("firebase-admin")
 
 const _processEmailVerificationMDW = async (req, res, next) => {
   const { id, token } = req.query;
@@ -76,13 +77,36 @@ const _processEmailVerificationMDW = async (req, res, next) => {
 
             // If the refer's uuid is valid, we will grant the refer and referred 30 days premium
             if (refer_uuid.length > 0) {
+              // We have to check if the expiry timestamp of the refer is past date or not
+              let [get_refer_user_response, get_refer_user_error] = await HELPERS.promise._handlePromise(ACTIONS.users._getUser(refer_uuid))
+
+              if(get_refer_user_error){
+                res.send(get_refer_user_error)
+                return
+              }
+
+              let refer_expiry_timestamp = get_refer_user_response.data().expiryTimestamp,
+              update_refer_data = {
+                uuid: refer_uuid,
+                "package.plan": "premium"
+              }
+              
               let extra_time = 30 * 24 * 60 * 60 * 1000,
                 timestamp = Date.now(),
                 referred_expiry_timestamp = timestamp + extra_time;
 
+              // If refer's expiry timestamp is past date, we take current timestamp as base
+              if(refer_expiry_timestamp < Date.now()){
+                update_refer_data["expiryTimestamp"] = Date.now() + extra_time
+              } 
+              // If not, we take the expiry timestamp as base
+              else{
+                update_refer_data["expiryTimestamp"] = firebase_admin.firestore.FieldValue.increment(extra_time)
+              }
+
               let promises = [
                 // Update refer's user data
-                ACTIONS.users._updateUserWithExtraTime(refer_uuid, extra_time),
+                ACTIONS.users._updateUser(update_refer_data),
                 // Update refer's referral code data
                 ACTIONS.referralCodes._updateReferralCodeHistoryArray({
                   referral_code: used_referral_code,
@@ -102,7 +126,7 @@ const _processEmailVerificationMDW = async (req, res, next) => {
                   package: {
                     billed: false,
                     plan: "premium",
-                    renewalTimestamp: referred_expiry_timestamp
+                    renewalTimestamp: timestamp
                   }
                 }),
                 // Create a new document for referred's referral code data (override if exists)

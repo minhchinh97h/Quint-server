@@ -58,6 +58,24 @@ const _validateSubscription = async (req, res, next) => {
       return;
     }
 
+    // If it is not expired, we update the latest renewal timestamp
+    let update_data = {
+      uuid,
+      "package.renewalTimestamp": expires_date_ms
+    };
+
+    let [
+      update_user_response,
+      update_user_error
+    ] = await HELPERS.promise._handlePromise(
+      ACTIONS.users._updateUser(update_data)
+    );
+
+    if (update_user_error) {
+      res.send(update_user_error);
+      return;
+    }
+
     res.status(200).send("OK");
     return;
   } else {
