@@ -4,7 +4,7 @@ const firebase_admin = require("firebase-admin");
 
 const _validateReceiptData = async (req, res, next) => {
   const { receipt_data, uuid } = req.body;
-
+    console.log(uuid)
   let sending_data = {};
 
   sending_data["receipt-data"] = receipt_data;
