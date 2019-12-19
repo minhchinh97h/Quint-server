@@ -1,9 +1,9 @@
 const HELPERS = require("../../helpers");
 const ACTIONS = require("../../actions");
-const firebase_admin = require("firebase-admin");
 
-const _validateReceiptData = async (req, res, next) => {
+const _validateSubscription = async (req, res, next) => {
   const { receipt_data, uuid } = req.body;
+
   let sending_data = {};
 
   sending_data["receipt-data"] = receipt_data;
@@ -25,7 +25,6 @@ const _validateReceiptData = async (req, res, next) => {
   const { status } = send_receipt_data_response.data;
 
   if (status === 0) {
-    // update user document in DB with latest_receipt
     const {
       latest_receipt,
       latest_receipt_info
@@ -36,41 +35,35 @@ const _validateReceiptData = async (req, res, next) => {
 
     // Check if the subscription's expiration time is past date
     const current_ms = Date.now();
-    // If past date, we don't proceed
+    // If past date, we update user document
     if (expires_date_ms < current_ms) {
-      res.send("Subscription expires");
-      return;
-    }
+      let update_data = {
+        uuid,
+        "package.billed": false
+      };
 
-    // If it isn't past date, we add one more month into user's expiryTimestamp and update its package property
-    let update_data = {
-      uuid,
-      iosLatestReceipt: latest_receipt,
-      expiryTimestamp: firebase_admin.firestore.FieldValue.increment(
-        30 * 24 * 60 * 60 * 1000
-      ),
-      "package.billed": true,
-      "package.plan": "premium",
-      "package.renewalTimestamp": expires_date_ms
-    };
-    let [
-      update_user_db_response,
-      update_user_db_error
-    ] = await HELPERS.promise._handlePromise(
-      ACTIONS.users._updateUser(update_data)
-    );
+      let [
+        update_user_response,
+        update_user_error
+      ] = await HELPERS.promise._handlePromise(
+        ACTIONS.users._updateUser(update_data)
+      );
 
-    if (update_user_db_error) {
-      res.send(update_user_db_error);
+      if (update_user_error) {
+        res.send(update_user_error);
+        return;
+      }
+
+      res.status(200).send("Subscription expires.");
       return;
     }
 
     res.status(200).send("OK");
     return;
   } else {
-    res.status(500).send("Cannot process payment");
+    res.status(500).send("Cannot validate subscription.");
     return;
   }
 };
 
-module.exports = [_validateReceiptData];
+module.exports = [_validateSubscription];
