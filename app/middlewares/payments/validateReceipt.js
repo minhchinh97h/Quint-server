@@ -27,7 +27,7 @@ const _validateReceiptData = async (req, res, next) => {
 
   console.log(status)
 
-  if (status === 1) {
+  if (status === 0) {
       console.log("here status === 1")
     // update user document in DB with latest_receipt
     const {
