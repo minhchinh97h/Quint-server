@@ -28,7 +28,7 @@ const _validateReceiptData = async (req, res, next) => {
   console.log(status)
 
   if (status === 0) {
-      console.log("here status === 1")
+      console.log("here status === 0")
     // update user document in DB with latest_receipt
     const {
       latest_receipt,
@@ -40,6 +40,7 @@ const _validateReceiptData = async (req, res, next) => {
 
     // Check if the subscription's expiration time is past date
     const current_ms = Date.now();
+    console.log(expires_date_ms)
     // If past date, we don't proceed
     if (expires_date_ms < current_ms) {
       res.send("Subscription expires");
