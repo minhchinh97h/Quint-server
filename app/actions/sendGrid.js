@@ -2,7 +2,7 @@ const sgMail = require("@sendgrid/mail");
 sgMail.setApiKey(process.env.SENDGRID_API_KEY);
 
 const _sendVerificationEmail = (email, uuid, token) => {
-  let link = `${process.env.LOCAL_URL}auth?action=verify&id=${uuid}&token=${token}`;
+  let link = `${process.env.SERVER_URL}auth?action=verify&id=${uuid}&token=${token}`;
   let message = {
     to: email,
     from: "quintapp@gmail.com",
