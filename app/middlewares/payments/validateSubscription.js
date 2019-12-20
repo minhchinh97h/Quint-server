@@ -24,8 +24,6 @@ const _validateSubscription = async (req, res, next) => {
 
   const { status } = send_receipt_data_response.data;
 
-  console.log("validate subscription", status)
-
   if (status === 0) {
     const {
       latest_receipt,
@@ -57,7 +55,6 @@ const _validateSubscription = async (req, res, next) => {
         res.send(update_user_error);
         return;
       }
-      console.log("validate subscription", "expiry timestamp < now")
 
       res.status(200).send("Subscription expires.");
       return;
@@ -81,8 +78,6 @@ const _validateSubscription = async (req, res, next) => {
       res.send(update_user_error);
       return;
     }
-
-    console.log("validate subscription", "expiry timestamp > now")
 
     res.status(200).send("OK");
     return;
