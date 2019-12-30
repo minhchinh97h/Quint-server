@@ -53,7 +53,7 @@ const _processEmailVerificationMDW = async (req, res, next) => {
       // If the token is still valid
       if (now - token_created_at < expire_time) {
         // 1 month of beta testing, in this time, users who register new accounts will have access to Premium content.
-        let start_beta_testing_timestamp = new Date(2019, 11, 31).getTime(),
+        let start_beta_testing_timestamp = new Date(2019, 11, 30).getTime(),
           end_beta_testing_timestamp = new Date(2020, 0, 31).getTime();
 
         // Check if the used_referral_code is valid
@@ -261,10 +261,6 @@ const _processEmailVerificationMDW = async (req, res, next) => {
             timestamp = end_beta_testing_timestamp;
             package_plan = "premium";
           }
-          console.log("start_beta_testing_timestamp", start_beta_testing_timestamp)
-          console.log("Date.now()", Date.now())
-          console.log("end_beta_testing_timestamp", end_beta_testing_timestamp)
-          console.log(timestamp, package_plan);
 
           let promises = [
             // Update user in Auth
