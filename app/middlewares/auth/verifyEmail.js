@@ -6,7 +6,7 @@ const firebase_admin = require("firebase-admin");
 const _processEmailVerificationMDW = async (req, res, next) => {
   const { id, token } = req.query;
 
-  // If there are valid id and token
+  // If there are id and token
   if (id && token) {
     // Check if the account is verified
     let [
@@ -301,6 +301,16 @@ const _processEmailVerificationMDW = async (req, res, next) => {
           )
         );
       }
+    }
+
+    // If not, maybe the token has been expired
+    else {
+      res.sendFile(
+        path.join(
+          __dirname,
+          "../../public/html/expired-verification-page/index.html"
+        )
+      );
     }
   } else {
     res.status(400).send("Bad Request");
