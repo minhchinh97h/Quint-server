@@ -6,6 +6,8 @@ const firebase_admin = require("firebase-admin");
 const _processEmailVerificationMDW = async (req, res, next) => {
   const { id, token } = req.query;
 
+  console.log("log here to test changes")
+
   // If there are id and token
   if (id && token) {
     // Check if the account is verified
