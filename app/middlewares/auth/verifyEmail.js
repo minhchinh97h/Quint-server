@@ -180,12 +180,11 @@ const _processEmailVerificationMDW = async (req, res, next) => {
                     Date.now() <= end_beta_testing_timestamp
                       ? end_beta_testing_timestamp
                       : timestamp,
-                  // "package.plan":
-                  //   Date.now() >= start_beta_testing_timestamp &&
-                  //   Date.now() <= end_beta_testing_timestamp
-                  //     ? "premium"
-                  //     : "free",
-                  "package.plan": "free",
+                  "package.plan":
+                    Date.now() >= start_beta_testing_timestamp &&
+                    Date.now() <= end_beta_testing_timestamp
+                      ? "premium"
+                      : "free",
                   "package.renewalTimestamp": timestamp
                 }),
                 // Update referred's referral code data
@@ -216,13 +215,16 @@ const _processEmailVerificationMDW = async (req, res, next) => {
               ACTIONS.users._updateUser({
                 uuid: id,
                 emailVerified: true,
-                expiryTimestamp: timestamp,
-                // "package.plan":
-                //   Date.now() >= start_beta_testing_timestamp &&
-                //   Date.now() <= end_beta_testing_timestamp
-                //     ? "premium"
-                //     : "free",
-                "package.plan": "free",
+                expiryTimestamp:
+                  Date.now() >= start_beta_testing_timestamp &&
+                  Date.now() <= end_beta_testing_timestamp
+                    ? end_beta_testing_timestamp
+                    : timestamp,
+                "package.plan":
+                  Date.now() >= start_beta_testing_timestamp &&
+                  Date.now() <= end_beta_testing_timestamp
+                    ? "premium"
+                    : "free",
                 "package.renewalTimestamp": timestamp
               }),
               // Update referred's referral code data
@@ -254,13 +256,16 @@ const _processEmailVerificationMDW = async (req, res, next) => {
             ACTIONS.users._updateUser({
               uuid: id,
               emailVerified: true,
-              expiryTimestamp: timestamp,
-              // "package.plan":
-              //   Date.now() >= start_beta_testing_timestamp &&
-              //   Date.now() <= end_beta_testing_timestamp
-              //     ? "premium"
-              //     : "free",
-              "package.plan": "free",
+              expiryTimestamp:
+                Date.now() >= start_beta_testing_timestamp &&
+                Date.now() <= end_beta_testing_timestamp
+                  ? end_beta_testing_timestamp
+                  : timestamp,
+              "package.plan":
+                Date.now() >= start_beta_testing_timestamp &&
+                Date.now() <= end_beta_testing_timestamp
+                  ? "premium"
+                  : "free",
               "package.renewalTimestamp": timestamp
             }),
             // Update referred's referral code data
