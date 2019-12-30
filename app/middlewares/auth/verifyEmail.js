@@ -166,7 +166,16 @@ const _processEmailVerificationMDW = async (req, res, next) => {
 
             // If the refer's uuid is not valid, we will not grant the referred nor the refer
             else {
-              let timestamp = Date.now();
+              let timestamp =
+                  Date.now() >= start_beta_testing_timestamp &&
+                  Date.now() <= end_beta_testing_timestamp
+                    ? end_beta_testing_timestamp
+                    : Date.now(),
+                package_plan =
+                  Date.now() >= start_beta_testing_timestamp &&
+                  Date.now() <= end_beta_testing_timestamp
+                    ? "premium"
+                    : "free";
 
               let promises = [
                 // Update user in Auth
@@ -175,16 +184,8 @@ const _processEmailVerificationMDW = async (req, res, next) => {
                 ACTIONS.users._updateUser({
                   uuid: id,
                   emailVerified: true,
-                  expiryTimestamp:
-                    Date.now() >= start_beta_testing_timestamp &&
-                    Date.now() <= end_beta_testing_timestamp
-                      ? end_beta_testing_timestamp
-                      : timestamp,
-                  "package.plan":
-                    Date.now() >= start_beta_testing_timestamp &&
-                    Date.now() <= end_beta_testing_timestamp
-                      ? "premium"
-                      : "free",
+                  expiryTimestamp: timestamp,
+                  "package.plan": package_plan,
                   "package.renewalTimestamp": timestamp
                 }),
                 // Update referred's referral code data
@@ -207,7 +208,17 @@ const _processEmailVerificationMDW = async (req, res, next) => {
           }
           // If there is no referral code data, we will not grant the referred nor the refer.
           else {
-            let timestamp = Date.now();
+            let timestamp =
+                Date.now() >= start_beta_testing_timestamp &&
+                Date.now() <= end_beta_testing_timestamp
+                  ? end_beta_testing_timestamp
+                  : Date.now(),
+              package_plan =
+                Date.now() >= start_beta_testing_timestamp &&
+                Date.now() <= end_beta_testing_timestamp
+                  ? "premium"
+                  : "free";
+
             let promises = [
               // Update user in Auth
               ACTIONS.auth._updateUserAuth(id, { emailVerified: true }),
@@ -215,16 +226,8 @@ const _processEmailVerificationMDW = async (req, res, next) => {
               ACTIONS.users._updateUser({
                 uuid: id,
                 emailVerified: true,
-                expiryTimestamp:
-                  Date.now() >= start_beta_testing_timestamp &&
-                  Date.now() <= end_beta_testing_timestamp
-                    ? end_beta_testing_timestamp
-                    : timestamp,
-                "package.plan":
-                  Date.now() >= start_beta_testing_timestamp &&
-                  Date.now() <= end_beta_testing_timestamp
-                    ? "premium"
-                    : "free",
+                expiryTimestamp: timestamp,
+                "package.plan": package_plan,
                 "package.renewalTimestamp": timestamp
               }),
               // Update referred's referral code data
@@ -248,7 +251,17 @@ const _processEmailVerificationMDW = async (req, res, next) => {
 
         // If the referral code is not valid, we will not grant the referred nor the refer
         else {
-          let timestamp = Date.now();
+          let timestamp =
+              Date.now() >= start_beta_testing_timestamp &&
+              Date.now() <= end_beta_testing_timestamp
+                ? end_beta_testing_timestamp
+                : Date.now(),
+            package_plan =
+              Date.now() >= start_beta_testing_timestamp &&
+              Date.now() <= end_beta_testing_timestamp
+                ? "premium"
+                : "free";
+
           let promises = [
             // Update user in Auth
             ACTIONS.auth._updateUserAuth(id, { emailVerified: true }),
@@ -256,16 +269,8 @@ const _processEmailVerificationMDW = async (req, res, next) => {
             ACTIONS.users._updateUser({
               uuid: id,
               emailVerified: true,
-              expiryTimestamp:
-                Date.now() >= start_beta_testing_timestamp &&
-                Date.now() <= end_beta_testing_timestamp
-                  ? end_beta_testing_timestamp
-                  : timestamp,
-              "package.plan":
-                Date.now() >= start_beta_testing_timestamp &&
-                Date.now() <= end_beta_testing_timestamp
-                  ? "premium"
-                  : "free",
+              expiryTimestamp: timestamp,
+              "package.plan": package_plan,
               "package.renewalTimestamp": timestamp
             }),
             // Update referred's referral code data
