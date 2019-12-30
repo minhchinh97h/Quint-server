@@ -264,6 +264,8 @@ const _processEmailVerificationMDW = async (req, res, next) => {
                 ? "premium"
                 : "free";
 
+          console.log(timestamp, package_plan)
+
           let promises = [
             // Update user in Auth
             ACTIONS.auth._updateUserAuth(id, { emailVerified: true }),
