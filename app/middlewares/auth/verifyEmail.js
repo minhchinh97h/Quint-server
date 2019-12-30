@@ -261,7 +261,9 @@ const _processEmailVerificationMDW = async (req, res, next) => {
             timestamp = end_beta_testing_timestamp;
             package_plan = "premium";
           }
-
+          console.log("start_beta_testing_timestamp", start_beta_testing_timestamp)
+          console.log("Date.now()", Date.now())
+          console.log("end_beta_testing_timestamp", end_beta_testing_timestamp)
           console.log(timestamp, package_plan);
 
           let promises = [
