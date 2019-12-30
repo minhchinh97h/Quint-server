@@ -6,8 +6,6 @@ const firebase_admin = require("firebase-admin");
 const _processEmailVerificationMDW = async (req, res, next) => {
   const { id, token } = req.query;
 
-  console.log("log here to test changes")
-
   // If there are id and token
   if (id && token) {
     // Check if the account is verified
@@ -168,16 +166,16 @@ const _processEmailVerificationMDW = async (req, res, next) => {
 
             // If the refer's uuid is not valid, we will not grant the referred nor the refer
             else {
-              let timestamp =
-                  Date.now() >= start_beta_testing_timestamp &&
-                  Date.now() <= end_beta_testing_timestamp
-                    ? end_beta_testing_timestamp
-                    : Date.now(),
-                package_plan =
-                  Date.now() >= start_beta_testing_timestamp &&
-                  Date.now() <= end_beta_testing_timestamp
-                    ? "premium"
-                    : "free";
+              let timestamp = Date.now(),
+                package_plan = "free";
+
+              if (
+                Date.now() >= start_beta_testing_timestamp &&
+                Date.now() <= end_beta_testing_timestamp
+              ) {
+                timestamp = end_beta_testing_timestamp;
+                package_plan = "premium";
+              }
 
               let promises = [
                 // Update user in Auth
@@ -210,16 +208,16 @@ const _processEmailVerificationMDW = async (req, res, next) => {
           }
           // If there is no referral code data, we will not grant the referred nor the refer.
           else {
-            let timestamp =
-                Date.now() >= start_beta_testing_timestamp &&
-                Date.now() <= end_beta_testing_timestamp
-                  ? end_beta_testing_timestamp
-                  : Date.now(),
-              package_plan =
-                Date.now() >= start_beta_testing_timestamp &&
-                Date.now() <= end_beta_testing_timestamp
-                  ? "premium"
-                  : "free";
+            let timestamp = Date.now(),
+              package_plan = "free";
+
+            if (
+              Date.now() >= start_beta_testing_timestamp &&
+              Date.now() <= end_beta_testing_timestamp
+            ) {
+              timestamp = end_beta_testing_timestamp;
+              package_plan = "premium";
+            }
 
             let promises = [
               // Update user in Auth
@@ -253,18 +251,18 @@ const _processEmailVerificationMDW = async (req, res, next) => {
 
         // If the referral code is not valid, we will not grant the referred nor the refer
         else {
-          let timestamp =
-              Date.now() >= start_beta_testing_timestamp &&
-              Date.now() <= end_beta_testing_timestamp
-                ? end_beta_testing_timestamp
-                : Date.now(),
-            package_plan =
-              Date.now() >= start_beta_testing_timestamp &&
-              Date.now() <= end_beta_testing_timestamp
-                ? "premium"
-                : "free";
+          let timestamp = Date.now(),
+            package_plan = "free";
 
-          console.log(timestamp, package_plan)
+          if (
+            Date.now() >= start_beta_testing_timestamp &&
+            Date.now() <= end_beta_testing_timestamp
+          ) {
+            timestamp = end_beta_testing_timestamp;
+            package_plan = "premium";
+          }
+
+          console.log(timestamp, package_plan);
 
           let promises = [
             // Update user in Auth
